@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from typing import Iterable, List, Optional
 
 from .models import Task
-from .performance_confidence import PerformanceConfidence
+from .performance_confidence import PerformanceConfidence, PerformanceEvidence
 from .providers import IntelligenceProvider
 from .quota_window import QuotaRegistry
 from .resource_budget import ResourceBudget, ResourceBudgetEvaluator
@@ -103,14 +103,14 @@ class BudgetAwareRouter:
 
     def _score(self, provider: IntelligenceProvider, task: Task) -> float:
         performance = self.performance.get(provider.name, task.task_type)
-        evidence = type("Evidence", (), {
-            "provider": provider.name,
-            "task_type": task.task_type,
-            "sample_count": performance.sample_count,
-            "success_rate": performance.success_rate,
-            "quality_average": performance.quality_average,
-            "quality_samples": performance.quality_samples,
-        })()
+        evidence = PerformanceEvidence(
+            provider=provider.name,
+            task_type=task.task_type,
+            sample_count=performance.sample_count,
+            success_rate=performance.success_rate,
+            quality_average=performance.quality_average,
+            quality_samples=performance.quality_samples,
+        )
         quality = self.confidence.score(evidence)
         score = quality if quality is not None else 0.0
 
