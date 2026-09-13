@@ -5,25 +5,9 @@ and billing integrations will be added through adapters later.
 """
 
 from dataclasses import dataclass, field
-from time import monotonic
 from typing import Dict, Optional
 
-
-@dataclass
-class ResourceSnapshot:
-    provider: str
-    requests_used: int = 0
-    requests_limit: Optional[int] = None
-    input_tokens: int = 0
-    output_tokens: int = 0
-    estimated_cost: float = 0.0
-    failures: int = 0
-
-    @property
-    def requests_remaining(self) -> Optional[int]:
-        if self.requests_limit is None:
-            return None
-        return max(self.requests_limit - self.requests_used, 0)
+from .models import ResourceSnapshot
 
 
 @dataclass
@@ -34,22 +18,27 @@ class ResourceManager:
         self,
         provider: str,
         *,
+        model: str = "unknown",
         requests_limit: Optional[int] = None,
     ) -> ResourceSnapshot:
         snapshot = self.snapshots.get(provider)
         if snapshot is None:
             snapshot = ResourceSnapshot(
                 provider=provider,
+                model=model,
                 requests_limit=requests_limit,
             )
             self.snapshots[provider] = snapshot
-        elif requests_limit is not None:
-            snapshot.requests_limit = requests_limit
+        else:
+            if model != "unknown":
+                snapshot.model = model
+            if requests_limit is not None:
+                snapshot.requests_limit = requests_limit
         return snapshot
 
     def can_request(self, provider: str) -> bool:
         snapshot = self.snapshots.get(provider)
-        if snapshot is None:
+        if snapshot is None or not snapshot.available:
             return False
         remaining = snapshot.requests_remaining
         return remaining is None or remaining > 0
@@ -61,6 +50,7 @@ class ResourceManager:
         input_tokens: int = 0,
         output_tokens: int = 0,
         estimated_cost: float = 0.0,
+        latency_ms: Optional[float] = None,
         failed: bool = False,
     ) -> ResourceSnapshot:
         snapshot = self.snapshots[provider]
@@ -68,6 +58,8 @@ class ResourceManager:
         snapshot.input_tokens += input_tokens
         snapshot.output_tokens += output_tokens
         snapshot.estimated_cost += estimated_cost
+        if latency_ms is not None:
+            snapshot.latency_ms = latency_ms
         if failed:
             snapshot.failures += 1
         return snapshot
