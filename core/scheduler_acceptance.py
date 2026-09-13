@@ -1,6 +1,7 @@
 """PI-087 scheduler handoff -> scheduler acceptance boundary."""
 
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Optional
 
 from .durable_claim_handoff import SchedulerHandoffRequest
@@ -57,12 +58,13 @@ class SchedulerAcceptanceBoundary:
         else:
             raise ValueError("scheduler handoff receipt is required before acceptance")
 
+        timestamp = now or datetime.now(timezone.utc)
         receipt = SchedulerReceipt(
             task_id=request.task_id,
             intent_id=request.intent_id,
             dispatch_key=request.dispatch_key,
             state="accepted",
-            recorded_at=(now.isoformat() if now else __import__('datetime').datetime.now(__import__('datetime').timezone.utc).isoformat()),
+            recorded_at=timestamp.isoformat(),
         )
         self.receipts.record(receipt)
         stored = self.receipts.get(request.dispatch_key) or receipt
