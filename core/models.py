@@ -37,13 +37,22 @@ class Task:
 @dataclass
 class ResourceSnapshot:
     provider: str
-    model: str
+    model: str = "unknown"
     available: bool = True
     remaining_quota: Optional[float] = None
     input_tokens: int = 0
     output_tokens: int = 0
     estimated_cost: float = 0.0
     latency_ms: Optional[float] = None
+    requests_used: int = 0
+    requests_limit: Optional[int] = None
+    failures: int = 0
+
+    @property
+    def requests_remaining(self) -> Optional[int]:
+        if self.requests_limit is None:
+            return None
+        return max(self.requests_limit - self.requests_used, 0)
 
 
 @dataclass
