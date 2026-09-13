@@ -81,6 +81,36 @@ class V01ExecutionSliceTests(unittest.TestCase):
         self.assertIn(self.WORK_ID, result.continuity.open_work_ids)
         self.assertEqual(result.continuity.last_evidence_ids, [])
 
+    def test_failed_run_leaves_work_open(self):
+        provider = StubProvider("run_failure")
+        pi = PersonalIntelligenceSlice(provider)
+
+        result = pi.execute(self.WORK_ID, "send_test_message")
+
+        self.assertFalse(result.run.success)
+        self.assertIsNone(result.evidence)
+        self.assertIn(self.WORK_ID, result.continuity.open_work_ids)
+        self.assertEqual(result.continuity.last_receipt_ids, [])
+        self.assertEqual(result.continuity.last_evidence_ids, [])
+
+    def test_failed_verification_can_retry_and_then_close_same_work_id(self):
+        provider = StubProvider("verify_failure")
+        pi = PersonalIntelligenceSlice(provider)
+
+        failed = pi.execute(self.WORK_ID, "send_test_message")
+        self.assertFalse(failed.evidence.verified)
+        self.assertIn(self.WORK_ID, failed.continuity.open_work_ids)
+
+        provider.failure = None
+        recovered = pi.execute(self.WORK_ID, "send_test_message")
+
+        self.assertTrue(recovered.evidence.verified)
+        self.assertEqual(recovered.evidence.work_id, self.WORK_ID)
+        self.assertNotIn(self.WORK_ID, recovered.continuity.open_work_ids)
+        self.assertEqual(recovered.continuity.last_receipt_ids, ["receipt-2"])
+        self.assertEqual(recovered.continuity.last_evidence_ids, ["evidence-ok"])
+        self.assertEqual(provider.run_count, 2)
+
 
 if __name__ == "__main__":
     unittest.main()
