@@ -26,7 +26,6 @@ class V01ExecutionSliceTests(unittest.TestCase):
         )
 
     def test_failure_catalog(self):
-        # The failure catalog intentionally lives in this integration test.
         cases = [
             ("authorization_denied", None, False, "rejected", False),
             ("provider_rejected", "reject", True, "rejected", False),
