@@ -4,6 +4,7 @@ from core.continuity import InMemoryContinuity
 from core.models import Identity, Task
 from core.permissions import PermissionEngine
 from core.providers import EchoProvider
+from core.resource_manager import ResourceManager
 from core.router import IntelligenceRouter
 from core.runtime import PersonalIntelligence
 
@@ -13,10 +14,12 @@ class TestPI001(unittest.TestCase):
         permissions = PermissionEngine.deny_all()
         permissions.grant("intelligence", "execute")
         self.continuity = InMemoryContinuity()
+        self.resources = ResourceManager()
+        self.router = IntelligenceRouter([EchoProvider()], self.resources)
         self.pi = PersonalIntelligence(
             identity=Identity(person_id="test-person"),
             permissions=permissions,
-            router=IntelligenceRouter([EchoProvider()]),
+            router=self.router,
             continuity=self.continuity,
         )
 
@@ -33,7 +36,7 @@ class TestPI001(unittest.TestCase):
         pi = PersonalIntelligence(
             identity=Identity(person_id="test-person"),
             permissions=PermissionEngine.deny_all(),
-            router=IntelligenceRouter([EchoProvider()]),
+            router=self.router,
             continuity=self.continuity,
         )
         with self.assertRaises(PermissionError):
