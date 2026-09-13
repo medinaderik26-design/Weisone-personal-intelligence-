@@ -5,8 +5,7 @@ PI layers without collapsing their evidence semantics.
 """
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 
 from .execution_start import ExecutionStartBoundary, ExecutionStartRecord
 from .models import Task
@@ -18,6 +17,7 @@ from .provider_acceptance import ProviderAcceptanceBoundary, ProviderAcceptanceR
 @dataclass(frozen=True)
 class SpineResult:
     task_id: str
+    intent_id: str
     dispatch: PolicyDispatchRequest
     claim: PolicyDispatchClaimResult
     execution_start: Optional[ExecutionStartRecord]
@@ -40,17 +40,27 @@ class ExecutionSpine:
         self.execution_start_boundary = execution_start or ExecutionStartBoundary()
         self.provider_acceptance_boundary = provider_acceptance or ProviderAcceptanceBoundary()
 
-    def prepare(self, task: Task, boundary_decision: Any, classification: str) -> SpineResult:
+    def prepare(
+        self,
+        task: Task,
+        boundary_decision: Any,
+        classification: str,
+        *,
+        intent_id: str,
+    ) -> SpineResult:
         if not task.task_id:
             raise ValueError("task_id is required")
         if boundary_decision.task_id != task.task_id:
             raise ValueError("task and boundary decision task IDs do not match")
+        if not intent_id:
+            raise ValueError("intent_id is required")
 
         dispatch = self.dispatch_bridge.build(boundary_decision, classification)
         claim = self.claim_adapter.claim(dispatch)
 
         return SpineResult(
             task_id=task.task_id,
+            intent_id=intent_id,
             dispatch=dispatch,
             claim=claim,
             execution_start=None,
@@ -61,15 +71,20 @@ class ExecutionSpine:
         if not result.claim.claimed or result.claim.claim is None:
             raise RuntimeError("execution cannot start without a durable dispatch claim")
 
-        accepted = type("Acceptance", (), {
-            "task_id": result.task_id,
-            "dispatch_key": result.claim.dispatch_key,
-            "intent_id": result.claim.claim.task_id,
-            "accepted": True,
-        })()
+        accepted = type(
+            "Acceptance",
+            (),
+            {
+                "task_id": result.task_id,
+                "dispatch_key": result.claim.dispatch_key,
+                "intent_id": result.intent_id,
+                "accepted": True,
+            },
+        )()
         started = self.execution_start_boundary.start(accepted, now=now)
         return SpineResult(
             task_id=result.task_id,
+            intent_id=result.intent_id,
             dispatch=result.dispatch,
             claim=result.claim,
             execution_start=started,
@@ -94,6 +109,7 @@ class ExecutionSpine:
         )
         return SpineResult(
             task_id=result.task_id,
+            intent_id=result.intent_id,
             dispatch=result.dispatch,
             claim=result.claim,
             execution_start=result.execution_start,
