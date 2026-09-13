@@ -1,7 +1,6 @@
 """PI-050 traceability from confirmed intent to measured execution evidence."""
 
 from dataclasses import dataclass
-from typing import Optional
 
 from .execution_evidence import ExecutionEvidence
 from .execution_intent import ExecutionIntent
@@ -27,8 +26,6 @@ class IntentExecutionEvidence:
             raise ValueError("intent and receipt task IDs must match")
         if self.intent.intent_id != self.receipt.execution_key:
             raise ValueError("intent ID and execution key must match")
-        if self.intent.provider if hasattr(self.intent, "provider") else False:
-            raise ValueError("unexpected provider field")
 
 
 class IntentEvidenceRecorder:
