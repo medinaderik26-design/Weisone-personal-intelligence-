@@ -59,9 +59,9 @@ class SQLiteProjectionDriftPolicyLog:
     def record(self, decision: DurableProjectionPolicyDecision) -> None:
         decision.validate()
         self.connection.execute(
-            "INSERT INTO projection_drift_policy
-             (task_id, classification, action, reason, recorded_at)
-             VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO projection_drift_policy "
+            "(task_id, classification, action, reason, recorded_at) "
+            "VALUES (?, ?, ?, ?, ?)",
             (
                 decision.task_id,
                 decision.classification,
@@ -74,16 +74,16 @@ class SQLiteProjectionDriftPolicyLog:
 
     def for_task(self, task_id: str) -> tuple[DurableProjectionPolicyDecision, ...]:
         rows = self.connection.execute(
-            "SELECT task_id, classification, action, reason, recorded_at
-             FROM projection_drift_policy WHERE task_id = ? ORDER BY id",
+            "SELECT task_id, classification, action, reason, recorded_at "
+            "FROM projection_drift_policy WHERE task_id = ? ORDER BY id",
             (task_id,),
         ).fetchall()
         return tuple(DurableProjectionPolicyDecision(*row) for row in rows)
 
     def all(self) -> tuple[DurableProjectionPolicyDecision, ...]:
         rows = self.connection.execute(
-            "SELECT task_id, classification, action, reason, recorded_at
-             FROM projection_drift_policy ORDER BY id"
+            "SELECT task_id, classification, action, reason, recorded_at "
+            "FROM projection_drift_policy ORDER BY id"
         ).fetchall()
         return tuple(DurableProjectionPolicyDecision(*row) for row in rows)
 
