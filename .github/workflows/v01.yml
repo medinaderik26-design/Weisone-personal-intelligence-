@@ -1,0 +1,16 @@
+name: pi-v0.1
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  v01:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install --upgrade pip pytest
+      - run: python -m pytest -q tests/test_v01_execution_slice.py tests/test_ci_smoke.py tests/test_ollama_provider.py
